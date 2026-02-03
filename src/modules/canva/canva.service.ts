@@ -39,7 +39,7 @@ export class CanvaService {
 
   // ... (handleAuthCallback is fine)
 
-  async refreshAccessToken(refreshToken: string): Promise<{ accessToken: string }> {
+  async refreshAccessToken(refreshToken: string): Promise<{ accessToken: string; refreshToken?: string }> {
     const clientId = this.configService.get('CANVA_CLIENT_ID');
     const clientSecret = this.configService.get('CANVA_CLIENT_SECRET');
     const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
@@ -63,7 +63,10 @@ export class CanvaService {
       }
 
       const data: any = await res.json();
-      return { accessToken: data.access_token };
+      return {
+        accessToken: data.access_token,
+        refreshToken: data.refresh_token,
+      };
     } catch (error) {
       this.logger.error(`Error refreshing Canva token`, error);
       throw new UnauthorizedException('No se pudo refrescar el token de Canva');

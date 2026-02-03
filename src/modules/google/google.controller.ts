@@ -46,7 +46,7 @@ export class GoogleController {
   @ApiHeader({ name: 'authorization' })
   @ApiResponse({ status: 200 })
   getImages(@Headers('authorization') authHeader: string, @Query() query: GoogleDriveImagesDto) {
-    return this.googleService.listImages(authHeader, query.folderId);
+    return this.googleService.listImages(authHeader, query.folderId, query.pageToken, query.pageSize);
   }
 
   @Get('drive/folders')
@@ -55,7 +55,8 @@ export class GoogleController {
   @ApiHeader({ name: 'authorization' })
   @ApiResponse({ status: 200 })
   getFolders(@Headers('authorization') authHeader: string, @Query() query: GoogleDriveFoldersDto) {
-    return this.googleService.listFolders(authHeader, query.folderId);
+    // For folders, we only support pageSize control for now, defaulting to 1000 in service if not provided
+    return this.googleService.listFolders(authHeader, query.folderId, query.pageSize);
   }
 
   @Get('drive/docs')
@@ -64,7 +65,7 @@ export class GoogleController {
   @ApiHeader({ name: 'authorization' })
   @ApiResponse({ status: 200 })
   getDocs(@Headers('authorization') authHeader: string, @Query() query: GoogleDriveFoldersDto) {
-    return this.googleService.listDocs(authHeader, query.folderId);
+    return this.googleService.listDocs(authHeader, query.folderId, query.pageToken, query.pageSize);
   }
 
   @Get('drive/docs/:docId/content')

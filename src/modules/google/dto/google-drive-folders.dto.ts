@@ -10,4 +10,13 @@ export class GoogleDriveFoldersDto {
   @IsOptional()
   @IsString()
   folderId?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  pageToken?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  pageSize?: number;
 }

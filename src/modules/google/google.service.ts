@@ -31,7 +31,7 @@ export class GoogleService {
     );
   }
 
-  async refreshAccessToken(refreshToken: string): Promise<{ accessToken: string }> {
+  async refreshAccessToken(refreshToken: string): Promise<{ accessToken: string; refreshToken?: string }> {
     const auth = new google.auth.OAuth2(
       this.configService.get('GOOGLE_CLIENT_ID'),
       this.configService.get('GOOGLE_CLIENT_SECRET'),
@@ -42,7 +42,10 @@ export class GoogleService {
 
     try {
       const { credentials } = await auth.refreshAccessToken();
-      return { accessToken: credentials.access_token };
+      return {
+        accessToken: credentials.access_token,
+        refreshToken: credentials.refresh_token,
+      };
     } catch (error) {
       console.error('Error refreshing token', error);
       throw new UnauthorizedException('No se pudo refrescar el token');
@@ -67,7 +70,12 @@ export class GoogleService {
     }
   }
 
-  async listImages(authHeader: string, folderId: string = 'root'): Promise<GoogleDriveFile[]> {
+  async listImages(
+    authHeader: string,
+    folderId: string = 'root',
+    pageToken?: string,
+    pageSize: number = 20,
+  ): Promise<{ files: GoogleDriveFile[]; nextPageToken?: string }> {
     if (!authHeader) throw new UnauthorizedException('Falta el token');
     const accessToken = authHeader.replace('Bearer ', '');
 
@@ -80,7 +88,8 @@ export class GoogleService {
       const response = await drive.files.list({
         q: `'${folderId}' in parents and mimeType contains 'image/' and trashed = false`,
         fields: 'nextPageToken, files(id, name, thumbnailLink, webContentLink, mimeType)',
-        pageSize: 20,
+        pageSize,
+        pageToken,
       });
 
       const files: GoogleDriveFile[] =
@@ -92,14 +101,18 @@ export class GoogleService {
           thumbnailLink: file.thumbnailLink?.replace('=s220', ''),
         })) || [];
 
-      return files;
+      return { files, nextPageToken: response.data.nextPageToken };
     } catch (error) {
       console.error('Error fetching Drive files:', error);
       throw new Error('No se pudieron obtener los archivos de Drive');
     }
   }
 
-  async listFolders(authHeader: string, folderId: string = 'root'): Promise<GoogleDriveFile[]> {
+  async listFolders(
+    authHeader: string,
+    folderId: string = 'root',
+    pageSize: number = 1000,
+  ): Promise<GoogleDriveFile[]> {
     if (!authHeader) throw new UnauthorizedException('Falta el token');
     const accessToken = authHeader.replace('Bearer ', '');
 
@@ -112,7 +125,7 @@ export class GoogleService {
       const response = await drive.files.list({
         q: `'${folderId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
         fields: 'nextPageToken, files(id, name, mimeType)',
-        pageSize: 20,
+        pageSize,
       });
 
       const files: GoogleDriveFile[] =
@@ -129,7 +142,12 @@ export class GoogleService {
     }
   }
 
-  async listDocs(authHeader: string, folderId: string = 'root'): Promise<GoogleDriveFile[]> {
+  async listDocs(
+    authHeader: string,
+    folderId: string = 'root',
+    pageToken?: string,
+    pageSize: number = 20,
+  ): Promise<{ files: GoogleDriveFile[]; nextPageToken?: string }> {
     if (!authHeader) throw new UnauthorizedException('Falta el token');
     const accessToken = authHeader.replace('Bearer ', '');
 
@@ -142,7 +160,8 @@ export class GoogleService {
       const response = await drive.files.list({
         q: `'${folderId}' in parents and mimeType = 'application/vnd.google-apps.document' and trashed = false`,
         fields: 'nextPageToken, files(id, name, mimeType, iconLink)',
-        pageSize: 20,
+        pageSize,
+        pageToken,
       });
 
       const files: GoogleDriveFile[] =
@@ -153,7 +172,7 @@ export class GoogleService {
           thumbnailLink: file.iconLink, // Use icon as thumbnail for docs
         })) || [];
 
-      return files;
+      return { files, nextPageToken: response.data.nextPageToken };
     } catch (error) {
       console.error('Error fetching Google Docs:', error);
       throw new Error('No se pudieron obtener los documentos de Google');
