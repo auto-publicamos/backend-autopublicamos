@@ -15,8 +15,8 @@ async function bootstrap() {
   setupSwagger(app);
   setupCors(app);
 
-  // Servir archivos estáticos desde la carpeta public
-  app.useStaticAssets(join(__dirname, '..', 'public'));
+  // Servir archivos estáticos desde la carpeta view
+  app.useStaticAssets(join(__dirname, 'view'));
 
   await app.listen(3000);
 }
