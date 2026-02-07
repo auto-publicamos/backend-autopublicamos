@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Autenticación completada</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: #f5f5f5;
+      color: #333;
+    }
+    
+    .container {
+      text-align: center;
+      padding: 3rem 2rem;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      max-width: 400px;
+      width: 90%;
+    }
+    
+    .logo {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 1.5rem;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      color: white;
+      font-weight: bold;
+    }
+    
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 4px solid #e5e7eb;
+      border-top-color: #667eea;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 1.5rem;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    h1 {
+      margin: 0 0 0.5rem;
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #1f2937;
+    }
+    
+    p {
+      margin: 0;
+      color: #6b7280;
+      font-size: 0.95rem;
+    }
+    
+    .success-icon {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 1.5rem;
+      background: #10b981;
+      border-radius: 50%;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 32px;
+    }
+    
+    .error {
+      background: #fee2e2;
+      border: 1px solid #fca5a5;
+      color: #991b1b;
+      padding: 1rem;
+      border-radius: 8px;
+      margin-top: 1.5rem;
+      display: none;
+      font-size: 0.9rem;
+    }
+    
+    .provider-badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      background: #ede9fe;
+      color: #7c3aed;
+      border-radius: 999px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      margin-top: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="success-icon" id="successIcon">✓</div>
+    <div class="spinner" id="spinner"></div>
+    <h1 id="title">Autenticación completada</h1>
+    <p id="message">Cerrando ventana...</p>
+    <div id="providerBadge" class="provider-badge" style="display: none;"></div>
+    <div id="error" class="error"></div>
+  </div>
+
+  <script>
+    (function() {
+      try {
+        // Obtener parámetros de la URL
+        const params = new URLSearchParams(window.location.search);
+        
+        // Extraer tokens de Google
+        const googleToken = params.get('googleToken');
+        const googleRefreshToken = params.get('googleRefreshToken');
+        const googleEmail = params.get('googleEmail');
+        const googlePic = params.get('googlePic');
+        
+        // Extraer tokens de Canva
+        const canvaToken = params.get('canvaToken');
+        const canvaRefreshToken = params.get('canvaRefreshToken');
+        const canvaName = params.get('canvaName');
+
+        // Determinar el proveedor y preparar datos
+        let provider = null;
+        let data = {};
+
+        if (googleToken && googleEmail && googlePic) {
+          provider = 'google';
+          data = {
+            googleToken,
+            googleRefreshToken: googleRefreshToken || '',
+            googleEmail,
+            googlePic
+          };
+          document.getElementById('providerBadge').textContent = 'Google';
+          document.getElementById('providerBadge').style.display = 'inline-block';
+        } else if (canvaToken) {
+          provider = 'canva';
+          data = {
+            canvaToken,
+            canvaRefreshToken: canvaRefreshToken || '',
+            canvaName: canvaName || ''
+          };
+          document.getElementById('providerBadge').textContent = 'Canva';
+          document.getElementById('providerBadge').style.display = 'inline-block';
+          document.getElementById('providerBadge').style.background = '#fef3c7';
+          document.getElementById('providerBadge').style.color = '#92400e';
+        }
+
+        if (!provider) {
+          throw new Error('No se recibieron tokens válidos');
+        }
+
+        // Validar que tenemos un opener
+        if (!window.opener) {
+          throw new Error('Esta ventana no fue abierta correctamente');
+        }
+
+        // Enviar mensaje al opener
+        const message = {
+          type: 'oauth-success',
+          provider: provider,
+          data: data
+        };
+
+        // Enviar al opener
+        // Nota: El frontend validará que el mensaje venga del origen correcto
+        window.opener.postMessage(message, '*');
+
+        // Mostrar éxito visualmente
+        setTimeout(function() {
+          document.getElementById('spinner').style.display = 'none';
+          document.getElementById('successIcon').style.display = 'flex';
+          document.getElementById('title').textContent = '¡Autenticación exitosa!';
+          document.getElementById('message').textContent = 'Puedes cerrar esta ventana';
+        }, 300);
+
+        // NO cerramos aquí - dejamos que el parent lo cierre al recibir el mensaje
+        // El parent cerrará el popup después de procesar los datos
+
+      } catch (error) {
+        
+        const spinner = document.getElementById('spinner');
+        const successIcon = document.getElementById('successIcon');
+        const title = document.getElementById('title');
+        const message = document.getElementById('message');
+        const errorDiv = document.getElementById('error');
+        
+        if (spinner) spinner.style.display = 'none';
+        if (successIcon) successIcon.style.display = 'none';
+        if (title) title.textContent = 'Error en la autenticación';
+        if (message) message.textContent = 'No se pudo completar el proceso';
+        if (errorDiv) {
+          errorDiv.textContent = error.message;
+          errorDiv.style.display = 'block';
+        }
+
+        // Intentar notificar al opener del error si existe
+        if (window.opener) {
+          try {
+            window.opener.postMessage({
+              type: 'oauth-error',
+              error: error.message
+            }, '*');
+          } catch (e) {
+            // Silenciar error
+          }
+        }
+
+        // Cerrar de todas formas después de 3 segundos
+        setTimeout(function() {
+          window.close();
+        }, 3000);
+      }
+    })();
+  </script>
+</body>
+</html>

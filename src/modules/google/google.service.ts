@@ -10,25 +10,12 @@ export class GoogleService {
   handleAuthRedirect(req: any, res: any) {
     const { accessToken, refreshToken, email, picture } = req.user;
 
-    // Read redirect from session
-    let targetUrl = '';
-    if (req.session?.googleRedirect) {
-      targetUrl = req.session.googleRedirect;
-      delete req.session.googleRedirect; // Clean up
-    }
+    // Redirigir a la página de callback que enviará los datos al opener via postMessage
+    const callbackUrl = `/oauth-callback.html?googleToken=${accessToken}&googleRefreshToken=${
+      refreshToken || ''
+    }&googleEmail=${encodeURIComponent(email)}&googlePic=${encodeURIComponent(picture)}`;
 
-    if (!targetUrl) {
-      console.error('No target URL for Google redirect, cannot proceed');
-      res.status(400).send('Missing redirect URL. Please start the OAuth flow from the application.');
-      return;
-    }
-
-    const hasQuery = targetUrl.includes('?');
-    res.redirect(
-      `${targetUrl}${hasQuery ? '&' : '?'}googleToken=${accessToken}&googleRefreshToken=${
-        refreshToken || ''
-      }&googleEmail=${email}&googlePic=${picture}`,
-    );
+    res.redirect(callbackUrl);
   }
 
   async refreshAccessToken(refreshToken: string): Promise<{ accessToken: string; refreshToken?: string }> {

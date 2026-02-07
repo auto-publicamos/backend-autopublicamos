@@ -15,26 +15,12 @@ export class CanvaService {
   handleAuthCallback(req: any, res: any): void {
     const { accessToken, refreshToken, profile } = req.user;
 
-    // Read redirect from session
-    let targetUrl = '';
-    if (req.session?.canvaRedirect) {
-      targetUrl = req.session.canvaRedirect;
-      delete req.session.canvaRedirect; // Clean up
-    }
+    // Redirigir a la página de callback que enviará los datos al opener via postMessage
+    const callbackUrl = `/oauth-callback.html?canvaToken=${accessToken}&canvaRefreshToken=${refreshToken}&canvaName=${encodeURIComponent(
+      profile.displayName,
+    )}`;
 
-    if (!targetUrl) {
-      this.logger.error('No target URL for Canva redirect, cannot proceed');
-      res.status(400).send('Missing redirect URL. Please start the OAuth flow from the application.');
-      return;
-    }
-
-    const hasQuery = targetUrl.includes('?');
-
-    res.redirect(
-      `${targetUrl}${hasQuery ? '&' : '?'}canvaToken=${accessToken}&canvaRefreshToken=${refreshToken}&canvaName=${encodeURIComponent(
-        profile.displayName,
-      )}`,
-    );
+    res.redirect(callbackUrl);
   }
 
   // ... (handleAuthCallback is fine)
